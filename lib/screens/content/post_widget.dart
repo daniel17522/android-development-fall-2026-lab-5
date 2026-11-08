@@ -118,7 +118,7 @@ class _PostWidgetState extends State<PostWidget> {
             dense: true,
             leading: CircleAvatar(
               backgroundImage: NetworkImage(post.authorAvatarUrl),
-              onBackgroundImageError: (_, __) {},
+              onBackgroundImageError: (_, stackTrace) {},
             ),
             title: Text(
               post.authorName,

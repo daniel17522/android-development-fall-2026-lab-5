@@ -16,7 +16,7 @@ class CommentWidget extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundImage: NetworkImage(comment.avatarUrl),
-            onBackgroundImageError: (_, __) {},
+            onBackgroundImageError: (_, stackTrace) {},
           ),
           const SizedBox(width: 10),
           Expanded(

@@ -35,7 +35,7 @@ class StoryAvatar extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 26,
                     backgroundImage: NetworkImage(story.avatarUrl),
-                    onBackgroundImageError: (_, __) {},
+                    onBackgroundImageError: (_, stackTrace) {},
                   ),
                 ),
               ),
