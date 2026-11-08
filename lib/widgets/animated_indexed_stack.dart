@@ -5,7 +5,7 @@ import "package:flutter/material.dart";
 ///
 /// Pages are built lazily: a page is only created the first time it is shown.
 class AnimatedIndexedStack extends StatefulWidget {
-  const new({
+  const AnimatedIndexedStack({
     super.key,
     required this.index,
     required this.children,
@@ -40,8 +40,7 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        for (var i = 0; i < widget.children.length; i++)
-          _buildPage(i),
+        for (var i = 0; i < widget.children.length; i++) _buildPage(i),
       ],
     );
   }
@@ -52,7 +51,10 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack> {
     // right rest slightly right, so switching tabs slides in the tap direction.
     final offset = isActive
         ? Offset.zero
-        : Offset(i < widget.index ? -widget.slideOffset : widget.slideOffset, 0);
+        : Offset(
+            i < widget.index ? -widget.slideOffset : widget.slideOffset,
+            0,
+          );
 
     // TickerMode must sit inside the transitions: it only pauses the page's
     // own animations, otherwise the outgoing page could never fade out.

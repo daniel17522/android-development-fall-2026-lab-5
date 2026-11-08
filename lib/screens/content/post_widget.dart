@@ -1,98 +1,203 @@
-import "package:android_dev/screens/home_screen/models/post_model.dart";
-import "package:flutter/material.dart";
+import 'package:android_dev/screens/content/comment_widget.dart';
+import 'package:android_dev/screens/home_screen/models/comment_model.dart';
+import 'package:android_dev/screens/home_screen/models/post_model.dart';
+import 'package:flutter/material.dart';
 
 class PostWidget extends StatefulWidget {
-  final PostModel? post;
-  const PostWidget({super.key,required this.post});
+  const PostWidget({
+    super.key,
+    required this.post,
+    required this.onLike,
+    required this.onUnlike,
+    required this.onComment,
+  });
+
+  final PostModel post;
+  final VoidCallback onLike;
+  final VoidCallback onUnlike;
+  final ValueChanged<CommentModel> onComment;
 
   @override
   State<PostWidget> createState() => _PostWidgetState();
 }
 
 class _PostWidgetState extends State<PostWidget> {
-  final bool isLiked = false; 
- // This should ideally be managed by state management
+  final _commentController = TextEditingController();
+  bool _isLiked = false;
 
- void openBottomSheet() {
-    showModalBottomSheet(
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  void _openComments() {
+    showModalBottomSheet<void>(
       context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: 200,
-          color: Colors.white,
-          child: Center(
-            child: Text('Bottom Sheet Content'),
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(context).height * .72,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Comments',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: widget.post.comments.length,
+                    itemBuilder: (context, index) =>
+                        CommentWidget(comment: widget.post.comments[index]),
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _addComment(setSheetState),
+                          decoration: const InputDecoration(
+                            hintText: 'Add a comment...',
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send_rounded),
+                        color: Colors.blue,
+                        tooltip: 'Post comment',
+                        onPressed: () => _addComment(setSheetState),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
+  }
+
+  void _addComment(StateSetter setSheetState) {
+    final message = _commentController.text.trim();
+    if (message.isEmpty) return;
+
+    widget.onComment(
+      CommentModel(
+        authorName: 'You',
+        avatarUrl: 'https://i.pravatar.cc/150?img=8',
+        message: message,
+      ),
+    );
+    _commentController.clear();
+    setSheetState(() {});
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final post = widget.post;
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3), // changes position of shadow
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.0),
+          ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              backgroundImage: NetworkImage(post.authorAvatarUrl),
+              onBackgroundImageError: (_, __) {},
+            ),
+            title: Text(
+              post.authorName,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            trailing: const Icon(Icons.more_horiz),
+          ),
+          AspectRatio(
+            aspectRatio: 1,
             child: Image.network(
-              widget.post?.imageUrl ?? 'https://via.placeholder.com/150',
-              width: double.infinity,
+              post.imageUrl,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const ColoredBox(
+                color: Color(0xFFEDEDED),
+                child: Center(
+                  child: Icon(Icons.broken_image_outlined, size: 48),
+                ),
+              ),
             ),
           ),
           Row(
             children: [
               IconButton(
-                icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
-                onPressed: () {
-                  setState(() {
-                    // This should ideally update the like count in a state management solution
-                    if (isLiked) {
-                      widget.post?.addLike((widget.post?.likeCount ?? 1) - 1);
-                    } else {
-                      widget.post?.addLike((widget.post?.likeCount ?? 0) + 1);
-                    }
-                  });
-                },
+                icon: Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: _isLiked ? Colors.red : null,
+                ),
+                tooltip: _isLiked ? 'Unlike' : 'Like',
+                onPressed: () => setState(() {
+                  _isLiked = !_isLiked;
+                  _isLiked ? widget.onLike() : widget.onUnlike();
+                }),
               ),
               IconButton(
-                icon: const Icon(Icons.comment),
-                onPressed: () {
-                  openBottomSheet();
-                },
+                icon: const Icon(Icons.chat_bubble_outline),
+                tooltip: 'Comments',
+                onPressed: _openComments,
               ),
               IconButton(
-                icon: const Icon(Icons.share),
+                icon: const Icon(Icons.send_outlined),
+                tooltip: 'Share',
                 onPressed: () {},
               ),
-              Spacer(),
+              const Spacer(),
               IconButton(
                 icon: const Icon(Icons.bookmark_border),
+                tooltip: 'Save',
                 onPressed: () {},
               ),
             ],
           ),
-          Text(
-            widget.post?.description ?? '',
-            style: const TextStyle(fontSize: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Text(
+              '${post.likeCount} likes',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
-
-        ],)
-
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 4),
+            child: RichText(
+              text: TextSpan(
+                style: DefaultTextStyle.of(context).style,
+                children: [
+                  TextSpan(
+                    text: '${post.authorName}  ',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(text: post.description),
+                ],
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: _openComments,
+            child: Text('View all ${post.commentCount} comments'),
+          ),
+        ],
+      ),
     );
   }
 }
